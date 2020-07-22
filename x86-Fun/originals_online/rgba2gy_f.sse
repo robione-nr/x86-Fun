@@ -1,0 +1,44 @@
+void GreyScale(BYTE *src, BYTE *dest, int nPixels) {
+	__declspec(align(16)) const float fvR2Gy[4] = {0.11f,0.11f,0.11f,0.11f};
+	__declspec(align(16)) const float fvG2Gy[4] = {0.59f,0.59f,0.59f,0.59f};
+	__declspec(align(16)) const float fvB2Gy[4] = {0.3f,0.3f,0.3f,0.3f};
+	__declspec(align(16)) const UINT uiBMask[4] = {0x000000ff,0x000000ff,0x000000ff,0x000000ff};
+	__declspec(align(16)) const UINT uiRMask[4] = {0x00ff0000,0x00ff0000,0x00ff0000,0x00ff0000};
+	__declspec(align(16)) const UINT uiGMask[4] = {0x0000ff00,0x0000ff00,0x0000ff00,0x0000ff00};
+
+	__asm {
+		mov		ecx,nPixels
+		shr		ecx,2
+		mov		esi,src
+		mov		edi,dest
+
+_loop:
+		movups	xmm0,[esi]
+		dec		ecx
+		movaps	xmm1,xmm0
+		movaps	xmm2,xmm0
+		pand	xmm0,uiRMask
+		pand	xmm1,uiGMask
+		pand	xmm2,uiBMask
+		psrld	xmm0,16
+		psrld	xmm1,8
+		cvtdq2ps	xmm0,xmm0
+		cvtdq2ps	xmm1,xmm1
+		cvtdq2ps	xmm2,xmm2
+		mulps	xmm0,fvR2Gy
+		mulps	xmm1,fvG2Gy
+		mulps	xmm2,fvB2Gy
+		addps	xmm1,xmm0
+		addps	xmm2,xmm1
+		cvtps2dq	xmm2,xmm2
+		add		esi,16
+		packuswb	xmm2,xmm2
+		packuswb	xmm2,xmm2
+		
+		movss	[edi],xmm2
+		add		edi,4
+
+		cmp		ecx,0
+		jnz _loop
+	}
+}

@@ -1,0 +1,54 @@
+void GreyScale(BYTE *src, BYTE *dest, int nPixels) {
+	__declspec(align(16)) const short svRGB_Gy[8] = {117,601,306,0,117,601,306,0};
+
+	__asm {
+		mov esi,src
+		mov edi,dest
+		mov ecx,nPixels
+		movdqa xmm7,svRGB_Gy
+		pxor xmm6,xmm6
+
+_loop:
+		movdqu xmm0,[esi]
+		movdqu xmm2,[esi+16]
+		sub ecx,8
+		add esi,32
+		movdqa xmm1,xmm0
+		movdqa xmm3,xmm2
+		punpckhbw xmm0,xmm6
+		punpcklbw xmm1,xmm6
+		punpckhbw xmm2,xmm6
+		punpcklbw xmm3,xmm6
+		pmaddwd xmm0,xmm7
+		pmaddwd xmm1,xmm7
+		pmaddwd xmm2,xmm7
+		pmaddwd xmm3,xmm7
+		pshufd xmm5,xmm0,0x31
+		pshufd xmm4,xmm1,0x31
+		paddd xmm0,xmm5
+		paddd xmm1,xmm4
+		pshufd xmm5,xmm2,0x31
+		pshufd xmm4,xmm3,0x31
+		paddd xmm2,xmm5
+		paddd xmm3,xmm4
+		pshufd xmm0,xmm0,0x88
+		pshufd xmm1,xmm1,0x88
+		pshufd xmm2,xmm2,0x88
+		pshufd xmm3,xmm3,0x88
+		punpcklqdq xmm1,xmm0
+		punpcklqdq xmm3,xmm2
+		psrld xmm1,10
+		psrld xmm3,10
+		packuswb	xmm1,xmm1
+		packuswb	xmm3,xmm3
+		packuswb	xmm1,xmm1
+		packuswb	xmm3,xmm3
+
+		movss [edi],xmm1
+		movss [edi+4],xmm3
+
+		add edi,8
+		cmp ecx,0
+		jnz _loop
+	}
+}

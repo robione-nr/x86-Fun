@@ -1,0 +1,56 @@
+void GreyScale(BYTE *src, BYTE *dest, int nPixels) {
+	__declspec(align(16)) const short svRGB_Gy[4] = {117,601,306,0};
+
+	__asm {
+		mov esi,src
+		mov edi,dest
+		mov ecx,nPixels
+
+_loop:
+		movq mm0,svRGB_Gy
+		punpcklbw mm1,[esi]
+		punpcklbw mm2,[esi+4]
+		punpcklbw mm3,[esi+8]
+		punpcklbw mm7,[esi+12]
+		psrlw mm1,8
+		psrlw mm2,8
+		psrlw mm3,8
+		psrlw mm7,8
+		pmaddwd mm1,mm0
+		pmaddwd mm2,mm0
+		pmaddwd mm3,mm0
+		pmaddwd mm7,mm0
+		punpckldq mm4,mm1
+		punpckldq mm5,mm2
+		punpckldq mm6,mm3
+		punpckldq mm0,mm7
+		paddd mm4,mm1
+		paddd mm5,mm2
+		paddd mm6,mm3
+		paddd mm0,mm7
+		psrlq mm4,42
+		psrlq mm5,42
+		psrlq mm6,42
+		psrlq mm0,42
+		punpcklbw mm4,mm4
+		punpcklbw mm5,mm5
+		punpcklbw mm6,mm6
+		punpcklbw mm0,mm0
+		punpcklbw mm4,mm4
+		punpcklbw mm5,mm5
+		punpcklbw mm6,mm6
+		punpcklbw mm0,mm0
+		movd [edi],mm4
+		movd [edi+1],mm5
+		movd [edi+2],mm6
+		movd [edi+3],mm0
+
+		sub ecx,4
+		add esi,16
+		add edi,4
+		cmp ecx,0	
+		jnz _loop
+
+		emms
+	}
+}

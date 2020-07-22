@@ -1,0 +1,81 @@
+void Sobel(BYTE *src, BYTE *dest, int width, int height) {
+	__asm {
+		mov esi,src
+		mov edi,dest
+		mov ebx,width
+		mov ecx,height
+		inc esi
+		lea edi,[edi+ebx+1]
+
+		mov eax,ebx
+		sub ebx,2
+		sub ecx,2
+
+rows:
+		dec ecx
+		push ecx
+		mov ecx,ebx
+cols:
+		dec ecx
+		push ebx
+		push ecx
+
+		movzx ebx,byte ptr[esi+1]
+		movzx ecx,byte ptr[esi-1]
+		movzx edx,byte ptr[esi+eax*2+1]
+		sub ebx,ecx
+		add ebx,edx
+		movzx ecx,byte ptr[esi+eax-1]
+		movzx edx,byte ptr[esi+eax*2-1]
+		sub ebx,edx
+		movzx edx,byte ptr[esi+eax+1]
+		sub edx,ecx
+		lea ebx,[ebx+edx*2]
+
+		push ebx
+
+		movzx edx,byte ptr[esi]
+		movzx ebx,byte ptr[esi+1]
+		movzx ecx,byte ptr[esi+eax*2]
+		sub edx,ecx
+		lea ebx,[ebx+edx*2]
+		movzx edx,byte ptr[esi-1]
+		movzx ecx,byte ptr[esi+eax*2-1]
+		add ebx,edx
+		sub ebx,ecx
+		movzx ecx,byte ptr[esi+eax*2+1]
+		sub ebx,ecx
+
+		pop edx
+
+		cmp edx,0
+		jge Ex_nlt0
+		neg edx
+Ex_nlt0:
+		cmp ebx,0
+		jge Ey_nlt0
+		neg ebx
+Ey_nlt0:
+		add edx,ebx
+
+		cmp edx,0xff
+		jle ngt255
+		mov edx,0xff
+ngt255:
+		mov byte ptr[edi],dl
+
+		pop ecx
+		pop ebx
+		inc esi
+		inc edi
+
+		cmp ecx,0
+		jnz cols
+
+		pop ecx
+		add esi,2
+		add edi,2
+		cmp ecx,0
+		jnz rows
+	}
+}

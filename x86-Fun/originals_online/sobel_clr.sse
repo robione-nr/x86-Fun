@@ -1,0 +1,65 @@
+void Sobel(BYTE *src, BYTE *dest, int width, int height) {
+	__asm {
+		mov ebx,width
+		mov esi,src
+		mov edi,dest
+		shl ebx,2
+		mov ecx,height
+		mov edx,ebx
+		lea edi,[edi+ebx+4]
+
+		sub ebx,8
+		sub ecx,3
+		mov eax,ebx
+
+		pxor xmm5,xmm5 
+		pcmpeqd xmm7,xmm7
+		unpcklpd xmm7,xmm5
+		pshufd xmm7,xmm7,01001110b
+
+_loop:
+		movups	xmm0,[esi]
+		movups	xmm1,[esi+edx]
+		movups	xmm2,[esi+edx*2]
+		add esi,4
+		pshufd	xmm0,xmm0,01111010b
+		pshufd	xmm1,xmm1,11010111b	//lrrl
+		pshufd	xmm2,xmm2,11011010b
+
+		movaps	xmm3,xmm0		//ur.ul.u.u
+		movaps	xmm4,xmm2		//ll.lr.b.b
+		punpckhbw xmm3,xmm5		//ur.ul
+		punpckhbw xmm4,xmm5		//ll.lr
+		psubw	xmm3,xmm4		//t1.t2
+		punpckldq	xmm0,xmm1	//r.u.l.u //OOI.1
+
+		pshufd	xmm4,xmm3,01001110b
+		pxor	xmm4,xmm7
+		paddw	xmm3,xmm4		//x(t1-t2).y(t1+t2)
+
+		punpckldq	xmm2,xmm1	//r.b.l.b
+		punpckhbw	xmm0,xmm5	//r.u
+		punpcklbw	xmm2,xmm5	//l.b
+		psubw	xmm0,xmm2
+		psllw	xmm0,1
+		paddw	xmm3,xmm0		//x.y
+		movaps	xmm0,xmm5
+		movaps	xmm4,xmm3
+		pcmpgtw	xmm0,xmm3
+		pxor	xmm4,xmm0
+		pshufd	xmm3,xmm4,0x4e	//y.x
+		paddw	xmm3,xmm4		//y+x.y+x
+		packuswb	xmm3,xmm3
+
+		movss	[edi],xmm3
+		add edi,4
+		sub ebx,4
+		jg _loop
+
+		mov ebx,eax
+		add esi,8
+		add edi,8
+		dec ecx
+		jg _loop
+	}
+}

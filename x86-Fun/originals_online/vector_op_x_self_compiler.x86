@@ -1,0 +1,64 @@
+	push	ebp
+	mov	ebp, esp
+	and	esp, -16				; fffffff0H
+	sub	esp, 12					; 0000000cH
+
+; 40   : 	__m128 c = _mm_load1_ps(&scalar);
+; 41   : 	int i = 0;
+
+	lea	eax, DWORD PTR _scalar$[ebp]
+	push	esi
+	xor	esi, esi
+	movss	xmm0, DWORD PTR [eax]
+
+; 43   : 	if(m_iElements & 0x01) {
+; 44   : 		*(m_pdata) = _mm_mul_ps(*(m_pdata),c);
+; 45   : 		++i;
+
+	mov	al, BYTE PTR [ecx+4]
+	test	al, 1
+	shufps	xmm0, xmm0, 0
+	je	SHORT $L79410
+	mov	eax, DWORD PTR [ecx]
+	mov	esi, 1
+	movaps	xmm1, XMMWORD PTR [eax]
+	mulps	xmm1, xmm0
+	movaps	XMMWORD PTR [eax], xmm1
+$L79410:
+
+; 46   : 	}
+; 47   : 	for(;i<m_iElements;i+=2) {
+
+	cmp	esi, DWORD PTR [ecx+4]
+	jge	SHORT $L79414
+	mov	eax, esi
+	shl	eax, 4
+$L79412:
+
+; 48   : 		*(m_pdata+i) = _mm_mul_ps(*(m_pdata+i),c);
+; 49   : 		*(m_pdata+i+1) = _mm_mul_ps(*(m_pdata+i+1),c);
+
+	mov	edx, DWORD PTR [ecx]
+	add	esi, 2
+	add	edx, eax
+	movaps	xmm1, XMMWORD PTR [edx]
+	mulps	xmm1, xmm0
+	movaps	XMMWORD PTR [edx], xmm1
+	mov	edx, DWORD PTR [ecx]
+	movaps	xmm1, XMMWORD PTR [eax+edx+16]
+	lea	edx, DWORD PTR [eax+edx+16]
+	mulps	xmm1, xmm0
+	add	eax, 32					; 00000020H
+	movaps	XMMWORD PTR [edx], xmm1
+	mov	edx, DWORD PTR [ecx+4]
+	cmp	esi, edx
+	jl	SHORT $L79412
+$L79414:
+
+; 50   : 	}
+; 51   : }
+
+	pop	esi
+	mov	esp, ebp
+	pop	ebp
+	ret	4

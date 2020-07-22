@@ -1,0 +1,73 @@
+void Sobel(BYTE *src, BYTE *dest, int width, int height) {
+	__asm {
+		mov esi,src
+//		sub esi,6		//Correctly positions final image
+		mov edi,dest		//Why? IDK :/ But it's 5k slower
+		mov ebx,width
+		mov ecx,height
+		mov edx,ebx
+		lea edi,[edi+ebx+1]
+		sub ecx,3
+		mov eax,ebx
+		pxor xmm7,xmm7
+
+_loop:
+		movups	xmm0,[esi]			//top.ul
+		movups	xmm1,[esi+edx]			//middle.l
+		movups	xmm2,[esi+edx*2]		//bottom.ll
+		add esi,8
+		movaps	xmm3,xmm0
+		movaps	xmm5,xmm2
+		pslldq	xmm3,1				//u
+		pslldq	xmm5,1				//b
+		movaps	xmm4,xmm3
+		movaps	xmm6,xmm5
+		pslldq	xmm4,1				//ur
+		pslldq	xmm6,1				//lr
+
+		punpckhbw xmm0,xmm7			//ul
+		punpckhbw xmm2,xmm7			//ll
+		punpckhbw xmm3,xmm7			//u
+		punpckhbw xmm5,xmm7			//b
+		punpckhbw xmm4,xmm7			//ur
+		punpckhbw xmm6,xmm7			//lr
+
+		psubw	xmm4,xmm2			//t1
+		psubw	xmm0,xmm6			//t2
+		movaps	xmm2,xmm1
+		psubw	xmm3,xmm5			//d.vert
+		pslldq	xmm2,2
+		psllw	xmm3,1				//d.vert*2
+
+		movaps	xmm5,xmm4
+		punpckhbw xmm1,xmm7			//l
+		punpckhbw xmm2,xmm7			//r
+
+		psubw	xmm4,xmm0			//x:t1-t2
+		psubw	xmm2,xmm1			//d.horz
+		paddw	xmm5,xmm0			//y:t1+t2
+		psllw	xmm2,1				//d.horz*2
+
+		paddw	xmm5,xmm3			//y
+		paddw	xmm4,xmm2			//x
+
+		movaps	xmm0,xmm7
+		movaps	xmm1,xmm7
+		pcmpgtw	xmm0,xmm4			//neg mask x
+		pcmpgtw	xmm1,xmm5			//neg mask y
+		pxor	xmm4,xmm0
+		pxor	xmm5,xmm1
+		paddw	xmm4,xmm5			//mag x+y
+		packuswb	xmm4,xmm4
+
+		movlps	[edi],xmm4
+
+		add edi,8
+		sub ebx,8
+		jnz _loop
+
+		mov ebx,eax
+		dec ecx
+		jnz _loop
+	}
+}

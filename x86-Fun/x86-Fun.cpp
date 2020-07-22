@@ -11,11 +11,16 @@ HINSTANCE hInst;                                // current instance
 WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
 
+
+
 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
+
+BOOL GatherMonitorInfo(HMONITOR hMon, HDC hDC, LPRECT pRct, LPARAM lp);
+
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -34,23 +39,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     // Perform application initialization:
     if (!InitInstance (hInstance, nCmdShow))
-    {
         return FALSE;
-    }
-
-    HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_X86FUN));
 
     MSG msg;
 
     // Main message loop:
     while (GetMessage(&msg, nullptr, 0, 0))
-    {
-        if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
-        {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
-        }
-    }
+		DispatchMessage(&msg);
 
     return (int) msg.wParam;
 }
@@ -75,8 +70,8 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     wcex.hInstance      = hInstance;
     wcex.hIcon          = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_X86FUN));
     wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
-    wcex.hbrBackground  = (HBRUSH)(COLOR_WINDOW+1);
-    wcex.lpszMenuName   = MAKEINTRESOURCEW(IDC_X86FUN);
+	wcex.hbrBackground	= 0; // (HBRUSH)(COLOR_WINDOW + 1);
+	wcex.lpszMenuName	= 0; // MAKEINTRESOURCEW(IDC_X86FUN);
     wcex.lpszClassName  = szWindowClass;
     wcex.hIconSm        = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 
@@ -108,6 +103,24 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    ShowWindow(hWnd, nCmdShow);
    UpdateWindow(hWnd);
 
+   EnumDisplayMonitors(NULL, NULL, GatherMonitorInfo, 0)
+
+   IDXGIFactory1	*pDGIF;
+   IDXGIAdapter1	*pDGIA;
+   IDXGIOutput		*pDGIO;
+
+   HRESULT			hr;
+
+   std::vector < std::pair<IDXGIAdapter1 *, IDXGIOutput *> > Outputs;
+
+   CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void **)(&pDGIF));
+   for (UINT i = 0;	pDGIF->EnumAdapters1(i, &pDGIA) == S_OK; ++i) {
+	   for (UINT ii = 0; pDGIA->EnumOutputs(ii, &pDGIO) == S_OK; ++ii)
+		   ; //Store Output?
+	   break;
+   }
+
+
    return TRUE;
 }
 
@@ -116,7 +129,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //
 //  PURPOSE: Processes messages for the main window.
 //
-//  WM_COMMAND  - process the application menu
 //  WM_PAINT    - Paint the main window
 //  WM_DESTROY  - post a quit message and return
 //
@@ -125,23 +137,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
     {
-    case WM_COMMAND:
-        {
-            int wmId = LOWORD(wParam);
-            // Parse the menu selections:
-            switch (wmId)
-            {
-            case IDM_ABOUT:
-                DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
-                break;
-            case IDM_EXIT:
-                DestroyWindow(hWnd);
-                break;
-            default:
-                return DefWindowProc(hWnd, message, wParam, lParam);
-            }
-        }
-        break;
+    case WM_KEYDOWN:
+		switch (wParam) {
+		case 'Q':
+			PostMessageA(hWnd, WM_DESTROY, 0, 0);
+		}
+		break;
     case WM_PAINT:
         {
             PAINTSTRUCT ps;
@@ -150,6 +151,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             EndPaint(hWnd, &ps);
         }
         break;
+	case WM_DISPLAYCHANGE:
+		EnumDisplayMonitors(NULL, NULL, GatherMonitorInfo, 0);
+		break;
     case WM_DESTROY:
         PostQuitMessage(0);
         break;
@@ -159,22 +163,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     return 0;
 }
 
-// Message handler for about box.
-INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
-{
-    UNREFERENCED_PARAMETER(lParam);
-    switch (message)
-    {
-    case WM_INITDIALOG:
-        return (INT_PTR)TRUE;
-
-    case WM_COMMAND:
-        if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
-        {
-            EndDialog(hDlg, LOWORD(wParam));
-            return (INT_PTR)TRUE;
-        }
-        break;
-    }
-    return (INT_PTR)FALSE;
+BOOL GatherMonitorInfo(HMONITOR hMon, HDC hDC, LPRECT pRct, LPARAM lp) {
+	
 }
